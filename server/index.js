@@ -4,13 +4,17 @@ const { v4: uuidv4 } = require('uuid');
 const { NGO_SEED } = require('./data');
 const { calcPriority, allocateNGOs, isDuplicate, findNearby, haversine } = require('./algorithms');
 const https = require('https');
+const path  = require('path');
 
 const app  = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true })); // for Twilio webhook body parsing
+app.use(express.urlencoded({ extended: true }));
+
+// Serve React build
+app.use(express.static(path.join(__dirname, '../client/build')));
 
 // ── In-Memory Store ──────────────────────────────────────────────────────────
 let requests = [];
@@ -683,6 +687,11 @@ app.patch('/api/requests/:id', (req, res) => {
   Object.assign(r, req.body);
   broadcast('requestUpdate', r);
   res.json(r);
+});
+
+// React catch-all (must be after all API routes)
+app.get('*', (_req, res) => {
+  res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
 });
 
 app.listen(PORT, () => {
